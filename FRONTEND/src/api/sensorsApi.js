@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/sensors"; // backend base URL
+const API_BASE = "https://your-backend-url.onrender.com/api/sensors";
 
 // ✅ Get all sensor data
 export const getSensorData = async () => {

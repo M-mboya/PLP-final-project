@@ -1,97 +1,124 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import {
   LineChart,
   Line,
-  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 
-export default function Dashboard() {
-  const [sensors, setSensors] = useState([]);
-  const [alerts, setAlerts] = useState([]);
+const API_URL = "http://localhost:5000/api/sensors"; // Adjust if your backend runs elsewhere
 
-  const fetchSensors = async () => {
+const App = () => {
+  const [sensorData, setSensorData] = useState([]);
+  const [alert, setAlert] = useState("");
+
+  // Fetch all sensor data
+  const fetchData = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/sensors");
-      const data = await res.json();
-      setSensors(data);
-
-      // Alerts
-      const newAlerts = data.map(sensor => {
-        const a = [];
-        if (sensor.temperature < 15 || sensor.temperature > 30)
-          a.push(`🌡️ Temperature out of range: ${sensor.temperature}°C`);
-        if (sensor.ph < 6.5 || sensor.ph > 8.5)
-          a.push(`💧 Abnormal pH level: ${sensor.ph}`);
-        if (sensor.oxygen < 5)
-          a.push(`🫧 Low Oxygen level: ${sensor.oxygen} mg/L`);
-        if (sensor.fishCount < 50)
-          a.push(`🐟 Fish count low: ${sensor.fishCount}`);
-        return a;
-      }).flat();
-
-      setAlerts(newAlerts);
+      const response = await axios.get(API_URL);
+      setSensorData(response.data);
     } catch (error) {
-      console.error("Error fetching sensors:", error);
+      console.error("Error fetching sensor data:", error);
     }
   };
 
+  // Simulate new sensor reading
+  const simulateSensorData = async () => {
+    try {
+      await axios.post(`${API_URL}/simulate`);
+      fetchData();
+    } catch (error) {
+      console.error("Error simulating data:", error);
+    }
+  };
+
+  // Simple alert system based on sensor values
+  const checkAlerts = (data) => {
+    if (data.length === 0) return;
+
+    const latest = data[data.length - 1];
+    let message = "";
+
+    if (latest.temperature < 20) message = "⚠️ Temperature too low!";
+    else if (latest.temperature > 30) message = "🔥 Temperature too high!";
+    else if (latest.ph < 6.5) message = "⚠️ pH is too low!";
+    else if (latest.ph > 8.5) message = "⚠️ pH is too high!";
+    else if (latest.oxygenLevel < 4) message = "🚨 Oxygen level is critically low!";
+    else message = "✅ All readings are normal.";
+
+    setAlert(message);
+  };
+
   useEffect(() => {
-    fetchSensors();
-    const interval = setInterval(fetchSensors, 5000);
+    fetchData();
+    const interval = setInterval(fetchData, 4000);
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    checkAlerts(sensorData);
+  }, [sensorData]);
+
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-bold text-blue-700 mb-4">
+    <div className="min-h-screen bg-blue-50 p-6">
+      <h1 className="text-3xl font-bold text-center text-blue-900 mb-6">
         Aquafarm Sensor Dashboard 🌊
       </h1>
 
-      {/* Alerts */}
-      {alerts.length > 0 && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 animate-pulse">
-          <h2 className="font-semibold text-lg mb-2">⚠️ System Alerts</h2>
-          <ul className="list-disc pl-6">
-            {alerts.map((alert, i) => (
-              <li key={i}>{alert}</li>
-            ))}
-          </ul>
+      {/* ✅ Alerts */}
+      {alert && (
+        <div
+          className={`p-3 rounded-lg text-center mb-6 font-semibold ${
+            alert.includes("✅")
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
+          {alert}
         </div>
       )}
 
-      {/* Table */}
-      <div className="overflow-x-auto mb-8">
-        <table className="w-full bg-white rounded-lg shadow-lg border-collapse">
-          <thead className="bg-blue-500 text-white">
-            <tr>
-              <th className="py-2 px-4">Temperature (°C)</th>
-              <th className="py-2 px-4">pH</th>
-              <th className="py-2 px-4">Oxygen (mg/L)</th>
-              <th className="py-2 px-4">Fish Count</th>
-              <th className="py-2 px-4">Timestamp</th>
+      {/* Simulate button */}
+      <div className="flex justify-center mb-6">
+        <button
+          onClick={simulateSensorData}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-full shadow-lg"
+        >
+          Simulate Sensor Data
+        </button>
+      </div>
+
+      {/* Sensor Data Table */}
+      <div className="overflow-x-auto bg-white p-4 rounded-2xl shadow-lg">
+        <table className="min-w-full table-auto text-center border-collapse">
+          <thead>
+            <tr className="bg-blue-200 text-blue-900">
+              <th className="p-2">Temperature (°C)</th>
+              <th className="p-2">pH</th>
+              <th className="p-2">Oxygen (mg/L)</th>
+              <th className="p-2">Fish Count</th>
+              <th className="p-2">Timestamp</th>
             </tr>
           </thead>
           <tbody>
-            {sensors.length > 0 ? (
-              sensors.map((s, i) => (
-                <tr key={i} className="text-center border-b hover:bg-blue-50">
-                  <td className="py-2 px-4">{s.temperature}</td>
-                  <td className="py-2 px-4">{s.ph}</td>
-                  <td className="py-2 px-4">{s.oxygen}</td>
-                  <td className="py-2 px-4">{s.fishCount}</td>
-                  <td className="py-2 px-4">
-                    {new Date(s.timestamp).toLocaleString()}
+            {sensorData.length > 0 ? (
+              sensorData.map((item) => (
+                <tr key={item._id} className="border-t">
+                  <td className="p-2">{item.temperature?.toFixed(2)}</td>
+                  <td className="p-2">{item.ph?.toFixed(2)}</td>
+                  <td className="p-2">{item.oxygenLevel?.toFixed(2)}</td>
+                  <td className="p-2">{item.fishCount}</td>
+                  <td className="p-2">
+                    {new Date(item.timestamp).toLocaleString()}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="py-4 text-gray-500">
+                <td colSpan="5" className="p-4 text-gray-500">
                   No sensor data available
                 </td>
               </tr>
@@ -101,89 +128,97 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Section */}
-      {sensors.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Temperature Chart */}
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-blue-600 mb-2">
-              🌡️ Temperature Trend
-            </h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={sensors}>
-                <Line type="monotone" dataKey="temperature" stroke="#ff7300" />
-                <CartesianGrid stroke="#ccc" />
-                <XAxis
-                  dataKey="timestamp"
-                  tickFormatter={(t) => new Date(t).toLocaleTimeString()}
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* pH Chart */}
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-green-600 mb-2">
-              💧 pH Levels
-            </h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={sensors}>
-                <Line type="monotone" dataKey="ph" stroke="#00c49f" />
-                <CartesianGrid stroke="#ccc" />
-                <XAxis
-                  dataKey="timestamp"
-                  tickFormatter={(t) => new Date(t).toLocaleTimeString()}
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Oxygen Chart */}
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-sky-600 mb-2">
-              🫧 Oxygen Levels
-            </h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={sensors}>
-                <Line type="monotone" dataKey="oxygen" stroke="#0088FE" />
-                <CartesianGrid stroke="#ccc" />
-                <XAxis
-                  dataKey="timestamp"
-                  tickFormatter={(t) => new Date(t).toLocaleTimeString()}
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Fish Count Chart */}
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-purple-600 mb-2">
-              🐟 Fish Count
-            </h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={sensors}>
-                <Line type="monotone" dataKey="fishCount" stroke="#aa00ff" />
-                <CartesianGrid stroke="#ccc" />
-                <XAxis
-                  dataKey="timestamp"
-                  tickFormatter={(t) => new Date(t).toLocaleTimeString()}
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* 🌡️ Temperature Chart */}
+        <div className="bg-white p-4 rounded-2xl shadow">
+          <h2 className="text-lg font-semibold mb-2">Temperature (°C)</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={sensorData}>
+              <XAxis
+                dataKey="timestamp"
+                tickFormatter={(t) => new Date(t).toLocaleTimeString()}
+              />
+              <YAxis domain={[0, "dataMax + 5"]} />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="temperature"
+                stroke="#FF6B6B"
+                strokeWidth={2}
+                dot={true}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
-      )}
+
+        {/* 💧 Oxygen Level Chart */}
+        <div className="bg-white p-4 rounded-2xl shadow">
+          <h2 className="text-lg font-semibold mb-2">Oxygen Level (mg/L)</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={sensorData}>
+              <XAxis
+                dataKey="timestamp"
+                tickFormatter={(t) => new Date(t).toLocaleTimeString()}
+              />
+              <YAxis domain={[0, "dataMax + 2"]} />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="oxygenLevel"
+                stroke="#4ECDC4"
+                strokeWidth={2}
+                dot={true}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 🧪 pH Chart */}
+        <div className="bg-white p-4 rounded-2xl shadow">
+          <h2 className="text-lg font-semibold mb-2">pH Level</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={sensorData}>
+              <XAxis
+                dataKey="timestamp"
+                tickFormatter={(t) => new Date(t).toLocaleTimeString()}
+              />
+              <YAxis domain={[0, "dataMax + 2"]} />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="ph"
+                stroke="#FFD93D"
+                strokeWidth={2}
+                dot={true}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 🐟 Fish Count Chart */}
+        <div className="bg-white p-4 rounded-2xl shadow">
+          <h2 className="text-lg font-semibold mb-2">Fish Count</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={sensorData}>
+              <XAxis
+                dataKey="timestamp"
+                tickFormatter={(t) => new Date(t).toLocaleTimeString()}
+              />
+              <YAxis />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="fishCount"
+                stroke="#1A535C"
+                strokeWidth={2}
+                dot={true}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default App;
