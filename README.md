@@ -1,8 +1,8 @@
-AAquafarm Sensor Dashboard
+Aquafarm Sensor Dashboard
 
 A full-stack MERN (MongoDB, Express.js, React, Node.js) project that simulates and monitors aquaculture and smart farming sensor data. This system helps farmers and researchers track soil moisture,oxygen level, PH level, temperature, and fish count, promoting better irrigation management and sustainable aquaculture practices.
 
-🌱 Essence of the Project
+ Essence of the Project
 
 Water and agriculture management are central to sustainable food production.
 The Aquafarm Sensor Dashboard demonstrates how IoT-inspired sensor data can be simulated and visualized in real time to improve decisions in agriculture and aquaculture systems.
