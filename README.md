@@ -83,7 +83,7 @@ npm run dev
 
 
 The backend runs on http://localhost:5000
-
+deployed on render https://plp-final-project-2-ir4f.onrender.com
 💻 Frontend Setup
 
 Navigate to the frontend folder:
@@ -103,6 +103,7 @@ npm run dev
 
 The frontend runs on http://localhost:5174
  (or next available port)
+ its deployed on vercel https://vercel.com/michaels-projects-39d47b23/plp-final-project/2FjwA167cmBA8uGqy6b17uKqKBDn
 
 🌐 API Endpoints
 Method	Endpoint	Description
